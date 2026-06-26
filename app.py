@@ -3,7 +3,7 @@ import json
 import os
 import secrets
 import sqlite3
-from llm_handler import advanced_llm_response
+from tool_handler import call_with_tools
 from datetime import datetime
 from logging_system import logger
 
@@ -163,6 +163,11 @@ def main():
                         if st.session_state.get("messages"):
                             st.session_state.messages = []
                         st.rerun()
+        # Debug panel (kept in sidebar, collapsed by default)
+        debug_exp = st.expander("Debug: Agent Activity", expanded=False)
+        params_ph = debug_exp.empty()
+        result_ph = debug_exp.empty()
+        count_ph = debug_exp.empty()
 
     # Display chat messages
     for message in st.session_state.messages:
@@ -176,16 +181,36 @@ def main():
         with st.chat_message("user"):
             st.markdown(prompt)
 
-        # Get AI response
+        # Get AI response with streaming and structured debug events
         with st.chat_message("assistant"):
-            with st.spinner("Analyzing your prompt..."):
-                # FIX 2: now passes full chat_history for conversational memory
-                response = advanced_llm_response(
-                    prompt,
-                    user_id=getattr(st.session_state, "user_id", "anonymous"),  # NEW: Track who
-                    chat_history=st.session_state.messages
-                )
-                st.markdown(response)
+            response_placeholder = st.empty()
+            response_text = ""
+
+            # local buffers for debug display
+            params_list = []
+            results_list = []
+            tool_count = 0
+
+            def stream_callback(chunk):
+                nonlocal response_text
+                response_text += chunk
+                response_placeholder.markdown(response_text)
+
+            def debug_callback(evt: dict):
+                nonlocal params_list, results_list, tool_count
+                ev = evt.get("event")
+                if ev == "tool_called":
+                    params_list.append(f"{evt.get('name')}: {json.dumps(evt.get('args'))}")
+                    params_ph.markdown("**Params passed**:\n\n" + "\n\n".join(params_list))
+                elif ev == "tool_result":
+                    results_list.append(f"{evt.get('name')}: {evt.get('result')}")
+                    # show last 5 results
+                    result_ph.markdown("**Tool returned (last 5)**:\n\n" + "\n\n".join(results_list[-5:]))
+                elif ev == "tool_count":
+                    tool_count = int(evt.get('count') or 0)
+                    count_ph.markdown(f"**Tool calls**: {tool_count}")
+
+            response = call_with_tools(prompt, stream_callback=stream_callback, debug_callback=debug_callback)
 
         # Add assistant response to chat history
         st.session_state.messages.append({"role": "assistant", "content": response})
