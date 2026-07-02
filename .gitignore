@@ -40,4 +40,5 @@ env/
 .vscode/
 
 # Project specific
-saved_chats/
+generated/
+chat_histories/
