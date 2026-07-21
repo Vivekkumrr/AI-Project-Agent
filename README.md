@@ -1,61 +1,108 @@
-# AI Project Creator with Authentication
+# Minimal Project Navigation Agent
 
-A Minimal Chatbot application with Streamlit that allows users to create projects and agents through natural language prompts, with JWT authentication and project management capabilities.
+An AI agent that turns a plain-English project description into a real starting file structure — folders, stub files, and config skeletons — before you write any code.
 
-## Features
+Unlike tools like Cursor or Copilot (which help you edit code you've already started), this tool focuses on the step before that: giving you something to start from.
 
-- 🤖 **AI-Powered Project Creation** - Create projects through natural language
-- 💬 **Intelligent Assistant** - Conversational interface for project planning
-- 📊 **Project Management** - Save and view your created projects
-- 🗃️ **SQLite Database** - Persistent data storage for users and projects
-- 🎯 **Project Type Detection** - Automatically identifies web apps, chatbots, data tools, etc.
+**Current scope:** Python projects only. No package installs, no network calls, no other languages (yet).
 
-## Project Root
-llm-auth-app/
-├── app.py                 # Main Streamlit application
-├── auth.py               # Authentication and JWT functions
-├── config.py             # Configuration settings
-├── database.py           # Database initialization and connection
-├── llm_handler.py        # AI response and project creation logic
-├── project_manager.py    # Project management functions
-├── requirements.txt      # Python dependencies
-└── README.md            # This file
+---
 
+## What It Does
 
-## Installation
+You describe a project idea. The agent:
+1. Plans a small set of steps based on what it can actually do
+2. Creates real files and folders for that project
+3. Tells you exactly what succeeded and what failed — no guessing, no fake "all done" messages
 
-1. **Clone the repository**
+---
+
+## Setup
+
+1. Create a virtual environment
 ```bash
-git clone <your-repo-url>
-cd llm-auth-app
-
-2. **Create Virtual Environment with these commands
 python -m venv venv
 venv\Scripts\activate
+```
 
-3. ** Install all Dependencies in requirements.txt file
+2. Install dependencies
+```bash
+pip install -r requirements.txt
+```
 
-4. **Create a .env file in the root folder with the following variables:
+3. Create a `.env` file in the project root:
+```env
+OPENAI_API_KEY=your_openai_key_here
+OPENAI_MODEL=gpt-3.5-turbo
+```
 
-
-5. Run the App:
+4. Run the app
+```bash
 streamlit run app.py
+```
 
+---
 
-Example Prompts
+## How to Use It
 
-General Interaction
-"What can you do?"
-"How do I create a project?"
+Just describe your project idea in the chat. Examples:
 
-Project Creation
-"Create a portfolio website"
-"Build a weather data analyzer"
+- "I want a script that tracks my daily expenses and shows weekly totals"
+- "Scaffold a basic CLI tool for renaming files in a folder"
+- "Build a small tool that reads a CSV and summarizes it"
 
+The agent will create the files inside the `generated/` folder and tell you what it made.
 
-Tech Stack
-Frontend: Streamlit-python
-Backend: Python
-DatabaseL SQLite3
-AI-Integration: OpenAI
+---
 
+## What It Can Do
+
+| Tool | What it does |
+|---|---|
+| `write_file` | Creates a file (supports folders inside `generated/`) |
+| `read_file` | Reads a file back |
+| `list_files` | Lists files in a folder |
+| `search_code` | Searches project code for a keyword |
+| `run_python` | Runs a Python snippet and returns the output |
+
+---
+
+## What It Can't Do (Yet)
+
+- No installing packages (`pip install`, `npm install`, etc.)
+- No non-Python project types (Node, Java, etc.)
+- No network or internet access
+- No deleting or renaming existing files
+
+If a step needs one of these, the agent will say so instead of pretending it happened.
+
+---
+
+## Project Structure
+
+```
+app.py            → Streamlit UI, chat and saved-chat history
+tool_handler.py    → Tools, planning, and execution logic
+llm_handler.py      → General conversation handling
+config.py           → OpenAI API settings
+generated/           → Files the agent creates for you
+```
+
+---
+
+## Design Principle: Honesty Over Confidence
+
+Earlier versions of this agent would sometimes describe steps as "done" even when they failed or never ran. This version fixes that:
+
+- The agent only plans steps it can actually perform
+- Every step's real result (success or error) is tracked
+- The final response is built from those real results — not a made-up summary
+
+If something fails, you'll see exactly what failed and why, instead of a false "everything worked" message.
+
+---
+
+## Notes
+
+- This is a demo/portfolio project, intentionally scoped small and honest rather than broad and unreliable.
+- Saved chats are stored in a local SQLite database.
